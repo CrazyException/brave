@@ -1,11 +1,9 @@
 package com.github.kristofa.brave;
 
-import com.github.kristofa.brave.internal.Nullable;
 import com.twitter.zipkin.gen.Annotation;
 import com.twitter.zipkin.gen.BinaryAnnotation;
 import com.twitter.zipkin.gen.Endpoint;
 import com.twitter.zipkin.gen.Span;
-import java.util.Random;
 import zipkin.reporter.Reporter;
 
 import static com.github.kristofa.brave.internal.DefaultSpanCodec.toZipkin;
@@ -40,8 +38,6 @@ public abstract class AnnotationSubmitter {
     }
 
     abstract SpanAndEndpoint spanAndEndpoint();
-    abstract Random randomGenerator();
-    abstract boolean traceId128Bit();
 
     /**
      * The implementation of Clock to use.
@@ -187,25 +183,6 @@ public abstract class AnnotationSubmitter {
         }
     }
 
-    SpanId nextContext(@Nullable Span maybeParent) {
-        long newSpanId = randomGenerator().nextLong();
-        if (maybeParent == null) { // new trace
-            return SpanId.builder()
-                .spanId(newSpanId)
-                .traceIdHigh(traceId128Bit() ? randomGenerator().nextLong() : 0L).build();
-        } else if (maybeParent.context() != null) {
-            return maybeParent.context().toBuilder()
-                .parentId(maybeParent.getId())
-                .spanId(newSpanId).build();
-        }
-        // If we got here, some implementation of state passed a deprecated span
-        return SpanId.builder()
-            .traceIdHigh(maybeParent.getTrace_id_high())
-            .traceId(maybeParent.getTrace_id())
-            .parentId(maybeParent.getId())
-            .spanId(newSpanId).build();
-    }
-
     AnnotationSubmitter() {
     }
 
@@ -222,14 +199,6 @@ public abstract class AnnotationSubmitter {
         @Override
         SpanAndEndpoint spanAndEndpoint() {
             return spanAndEndpoint;
-        }
-
-        @Override Random randomGenerator() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override boolean traceId128Bit() {
-            throw new UnsupportedOperationException();
         }
 
         @Override
